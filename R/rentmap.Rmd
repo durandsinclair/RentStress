@@ -15,14 +15,12 @@ runtime: shiny
 
 ```{r global, include=FALSE}
 # 0) PREPARE ENVIRONMENT -----------------------------
-    #setwd("/Users/durandsinclair/Documents/Training/Hackathons/RentStress")
     #Load libraries
     library(flexdashboard)
     library(spdplyr)
     library(dplyr)
     library(readr)
     library(stringr)
-    library(highcharter)
     library(leaflet)
     library(DT)
     library(here)
