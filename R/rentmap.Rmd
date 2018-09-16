@@ -1,0 +1,394 @@
+---
+title: "Rent Affordability"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    navbar:
+    - { icon: "fa-linkedin", href: "https://www.linkedin.com/in/durand-sinclair/",align: right}
+    - { icon: "fa-facebook", href: "https://www.facebook.com/durand.sinclair",align: right}
+    source_code: embed
+    #logo: ./data/CIC_Logo.png #Needs to be exactly the right size to fit in bar
+    #theme: lumen
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+# 0) PREPARE ENVIRONMENT -----------------------------
+    #setwd("/Users/durandsinclair/Documents/Training/Hackathons/RentStress")
+    #Load libraries
+    library(flexdashboard)
+    library(spdplyr)
+    library(dplyr)
+    library(readr)
+    library(stringr)
+    library(highcharter)
+    library(leaflet)
+    library(DT)
+    library(here)
+    library(geojsonio)
+    library(geojsonlint)
+    library(shiny)
+
+#1) GET DATA ---------------------------
+    #jobs <- read_csv(here("data", "income_by_jobs.csv"))
+    cities <- read_csv(here("data", "city_coordinates.csv"))
+    oz_merged <- readRDS(here("data", "oz_merged.rds"))
+    income_by_job <- read_csv(here("data", "income_by_job.csv"))
+
+#2) SET UP LEAFLET ----------------------------------------------
+    leaflet(options = leafletOptions(minZoom = 0, maxZoom = 18))
+```
+
+
+Income
+=======================================================================
+
+Row {row-height= 50}
+-----------------------------------------------------------------------
+
+### Your income p.a.
+
+```{r}
+renderValueBox({
+    #Income box
+    valueBox(
+        prettyNum( paste( "$", round(input$income/1000, 0), " k"), big.mark = ","),
+        icon = "fa-user"
+        )
+})
+```
+
+### Maximum Rent p.a.
+```{r}
+renderValueBox({
+    #Maximum rent box
+    valueBox(
+        prettyNum( paste("$", round(input$income * 0.3 / 1000, 0), "k"), big.mark = ",")
+        , icon = "fa-home"
+        ) 
+})
+```
+
+### Maximum Rent per week
+```{r}
+renderValueBox({
+    #Maximum rent box
+    valueBox(
+        prettyNum( paste("$", round(input$income * 0.3 / 52, 0)), big.mark = ",")
+        , icon = "fa-calendar"
+        ) 
+})
+```
+
+
+Row 
+-----------------------------------------------------------------------
+### Options {data-width=250}
+```{r}
+
+#List the cities, and allow the user to choose them from a drop down (selectInput)
+    all_cities <- cities$gcc_names 
+
+    #all_jobs <- job_summary 
+        
+    #All jobs
+    #selectInput("job",
+    #            label = "Pick a job: ", 
+    #            choices = all_jobs,
+    #            selected = "",
+    #            selectize = FALSE
+    #            )
+
+    selectInput("city",
+                label = "Choose a city: ",
+                choices = all_cities,
+                selected = "Greater Sydney",
+                selectize = FALSE
+                )
+    numericInput(inputId = "income"
+                 , label = "Household income"
+                 , value = 100000
+                 , min = 0
+                 , max = 1000000
+                 )
+
+```
+
+
+### Income Map
+Where can you afford to rent, based on this income?
+```{r}
+renderLeaflet({
+    
+    #Categorise SA2s by rent stress
+        this_city <- oz_merged %>%
+            filter(GCC_NAME16 == input$city)
+
+        good <- this_city %>%
+            filter(rent <= input$income * 0.25)
+        
+        small_problem <- this_city %>%
+            filter(rent > input$income * 0.25) %>%
+            filter(rent <= input$income * 0.30)
+        
+        big_problem <- this_city %>%
+            filter(rent > input$income * 0.3) %>%
+            filter(rent <= input$income * 0.35)
+        
+        no_way <- this_city %>%
+            filter(rent > input$income * 0.35)
+    
+        
+    #Define areas using geojson
+        #the_city <- geojson_json(this_city)
+        good <- geojson_json(good)
+        small_problem <- geojson_json(small_problem)
+        big_problem <- geojson_json(big_problem)
+        no_way <- geojson_json(no_way)
+        
+    #Produce map
+        leaflet() %>% 
+            addTiles() %>%
+            addGeoJSON(geojson = good,
+                       fillColor = "white",
+                       weight = 1,
+                       fill = TRUE,
+                       fillOpacity = 0.2,
+                       color = "purple"
+                       ) %>%
+            addGeoJSON(geojson = small_problem, 
+                       fillColor = "orange", 
+                       weight = 1, 
+                       fillOpacity = 0.2, 
+                       fill = TRUE, 
+                       color = "purple"
+            ) %>%
+            addGeoJSON(geojson = big_problem, 
+                       fillColor = "red", 
+                       weight = 1, 
+                       fillOpacity = 0.4, 
+                       fill = TRUE, 
+                       color = "purple"
+            ) %>%
+            addGeoJSON(geojson = no_way, 
+                       fillColor = "black", 
+                       weight = 1, 
+                       fillOpacity = 0.7, 
+                       fill = TRUE, 
+                       color = "green"
+            ) %>%
+            addLegend("bottomright", 
+                      color = c("orange", "red", "black"), 
+                      labels = c(">25%", ">30%", ">35%"), 
+                      title = "% of income on rent", 
+                      opacity = 0.5
+                      ) %>%
+            setView(
+                lat = cities %>% filter(gcc_names == input$city) %>% select(lat)
+                , lng = cities %>% filter(gcc_names == input$city) %>% select(lon)
+                , zoom = 10)
+
+
+})
+```
+
+
+
+
+Occupation
+==============================================================================
+
+Row {row-height= 50}
+-----------------------------------------------------------------------
+
+### Your income p.a.
+
+```{r}
+renderValueBox({
+    #Income box
+    valueBox(
+        prettyNum( paste( "$", round(input$income2/1000, 0), " k"), big.mark = ","),
+        icon = "fa-user"
+        )
+})
+```
+
+### Maximum Rent p.a.
+```{r}
+renderValueBox({
+    #Maximum rent box
+    valueBox(
+        prettyNum( paste("$", round(input$income2 * 0.3 / 1000, 0), "k"), big.mark = ",")
+        , icon = "fa-home"
+        ) 
+})
+```
+
+### Maximum Rent per week
+```{r}
+renderValueBox({
+    #Maximum rent box
+    valueBox(
+        prettyNum( paste("$", round(input$income2 * 0.3 / 52, 0)), big.mark = ",")
+        , icon = "fa-calendar"
+        ) 
+})
+```
+
+
+Row 
+-----------------------------------------------------------------------
+### Options {data-width=250}
+```{r}
+    all_cities <- cities$gcc_names 
+
+    #all_jobs <- job_summary 
+        
+    #All jobs
+    #selectInput("job",
+    #            label = "Pick a job: ", 
+    #            choices = all_jobs,
+    #            selected = "",
+    #            selectize = FALSE
+    #            )
+
+    selectInput("city2",
+                label = "Choose a city: ",
+                choices = all_cities,
+                selected = "Greater Sydney",
+                selectize = FALSE
+                )
+
+
+
+income_by_job2 <- income_by_job %>%
+    filter(!sector == "???") %>%
+    filter(!sector == "Misc.") %>%
+    filter(!sector == "Pharmaceutical")
+
+income_by_sector <- income_by_job2 %>%
+    group_by(sector) %>%
+    summarise(ave = mean(average_income)) %>%
+    arrange()
+
+income_by_sector <- income_by_sector[,1:2]
+
+
+#List the cities, and allow the user to choose them from a drop down (selectInput)
+    all_sectors <- unique(income_by_job2$sector)
+    all_jobs <- income_by_job2$occupation 
+    
+    selectInput("sector",
+                label = "Choose a Sector: ",
+                choices = all_sectors,
+                selected = "Education",
+                selectize = FALSE
+                )
+    
+  reactive_sector = reactive({
+      income_by_job2 %>%
+          filter(sector == input$sector)
+  })  
+    
+
+    renderUI({selectInput("occupation",
+                label = "Choose an Occupation: ",
+                choices = reactive_sector()$occupation,
+                selected = "Primary School Teachers",
+                selectize = FALSE
+                )})
+    
+    
+  reactive_income = reactive({
+  income_by_job2 %>%
+  filter(occupation == input$occupation)}) 
+
+
+renderUI({numericInput(inputId = "income2",
+                       label = "Household income",
+                       value = reactive_income()$average_income,
+                       min = 0,
+                       max = 10000000)})
+
+
+```
+
+
+### Income Map
+Where can this occupation live?
+
+```{r}
+renderLeaflet({
+    
+    #Categorise SA2s by rent stress
+        this_city2 <- oz_merged %>%
+            filter(GCC_NAME16 == input$city2)
+
+        good2 <- this_city2 %>%
+            filter(rent <= input$income2 * 0.25)
+        
+        small_problem2 <- this_city2 %>%
+            filter(rent > input$income2 * 0.25) %>%
+            filter(rent <= input$income2 * 0.30)
+        
+        big_problem2 <- this_city2 %>%
+            filter(rent > input$income2 * 0.3) %>%
+            filter(rent <= input$income2 * 0.35)
+        
+        no_way2 <- this_city2 %>%
+            filter(rent > input$income2 * 0.35)
+    
+        
+    #Define areas using geojson
+        #the_city <- geojson_json(this_city)
+        good2 <- geojson_json(good2)
+        small_problem2 <- geojson_json(small_problem2)
+        big_problem2 <- geojson_json(big_problem2)
+        no_way2 <- geojson_json(no_way2)
+        
+    #Produce map
+        leaflet() %>% 
+            addTiles() %>%
+            addGeoJSON(geojson = good2,
+                       fillColor = "white",
+                       weight = 1,
+                       fill = TRUE,
+                       fillOpacity = 0.2,
+                       color = "purple"
+                       ) %>%
+            addGeoJSON(geojson = small_problem2, 
+                       fillColor = "orange", 
+                       weight = 1, 
+                       fillOpacity = 0.2, 
+                       fill = TRUE, 
+                       color = "purple"
+            ) %>%
+            addGeoJSON(geojson = big_problem2, 
+                       fillColor = "red", 
+                       weight = 1, 
+                       fillOpacity = 0.4, 
+                       fill = TRUE, 
+                       color = "purple"
+            ) %>%
+            addGeoJSON(geojson = no_way2, 
+                       fillColor = "black", 
+                       weight = 1, 
+                       fillOpacity = 0.7, 
+                       fill = TRUE, 
+                       color = "green"
+            ) %>%
+            addLegend("bottomright", 
+                      color = c("orange", "red", "black"), 
+                      labels = c(">25%", ">30%", ">35%"), 
+                      title = "% of income on rent", 
+                      opacity = 0.5
+                      ) %>%
+            setView(
+                lat = cities %>% filter(gcc_names == input$city2) %>% select(lat)
+                , lng = cities %>% filter(gcc_names == input$city2) %>% select(lon)
+                , zoom = 10)
+
+
+})
+```
