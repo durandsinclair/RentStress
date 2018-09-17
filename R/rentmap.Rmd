@@ -5,8 +5,10 @@ output:
     orientation: rows
     vertical_layout: fill
     navbar:
-    - { icon: "fa-linkedin", href: "https://www.linkedin.com/in/durand-sinclair/",align: right}
-    - { icon: "fa-facebook", href: "https://www.facebook.com/durand.sinclair",align: right}
+    - { title: "About Durand", href: "https://www.linkedin.com/in/durand-sinclair/",align: right}
+    - { title: "About Dave", href: "https://www.linkedin.com/in/davide-lorino-73963686/", align: right}
+    #- { icon: "fa-linkedin", href: "https://www.linkedin.com/in/durand-sinclair/",align: right}
+    #- { icon: "fa-facebook", href: "https://www.facebook.com/durand.sinclair",align: right}
     source_code: embed
     #logo: ./data/CIC_Logo.png #Needs to be exactly the right size to fit in bar
     #theme: lumen
