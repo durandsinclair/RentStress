@@ -7,7 +7,7 @@ output:
     navbar:
     - { title: "About Durand", href: "https://www.linkedin.com/in/durand-sinclair/",align: right}
     - { title: "About Dave", href: "https://www.linkedin.com/in/davide-lorino-73963686/", align: right}
-    #source_code: embed
+    # source_code: embed
 runtime: shiny
 ---
 
